@@ -1,0 +1,7 @@
+{
+	"name":"en-us|Order",
+	"version":"0.0",
+	"usesPersistentAppData":true,
+	"permissions":["store OR admin"],
+	"noMenu":true
+}

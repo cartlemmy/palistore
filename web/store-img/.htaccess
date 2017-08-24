@@ -1,0 +1,7 @@
+Options +FollowSymLinks
+
+RewriteEngine On
+
+RewriteCond %{DOCUMENTROOT}%{REQUESTFILENAME} !-f
+RewriteRule ^(.*).php$ - [L]
+RewriteRule ^(.*)$ index.php [L,NS]

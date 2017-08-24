@@ -1,0 +1,7 @@
+$this->shippingAndHandling
+	$this->totalOf('$deliveryType != "on-site"')->getFloat() == 0 ADD 0 NEXT
+    $this->totalOf('$deliveryType != "on-site"')->getFloat() <= 30.00 ADD 10.00 NEXT
+    $this->totalOf('$deliveryType != "on-site"')->getFloat() <= 50.00 ADD 15.00 NEXT
+    $this->totalOf('$deliveryType != "on-site"')->getFloat() <= 75.00 ADD 20.00 NEXT
+    ELSE ADD 25.00
+

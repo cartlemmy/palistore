@@ -1,0 +1,14 @@
+{
+	"name":"en-us|Store",
+	"version":"0.0",
+	"permissions":["store OR admin"],
+	"menuOrder":1,
+	"additionalMenu":[
+		{"ref":"../view","args":["db/storeItems"],"label":"en-us|Items","icon":"../lib/definitions/db.storeItems"},
+		{"ref":"../view","args":["db/storeCategories"],"label":"en-us|Categories","icon":"../lib/definitions/db.storeCategories"},
+		{"ref":"../view","args":["db/storeOrders"],"label":"en-us|Orders","icon":"../lib/definitions/db.storeOrders"},
+		{"ref":"../view","args":["db/storeShipment"],"label":"en-us|Shipments","icon":"../lib/definitions/db.storeShipment"},
+		{"ref":"../view","args":["db/storeOrderItems"],"label":"en-us|Order Items","icon":"../lib/definitions/db.storeOrderItems"},
+		{"ref":"../view","args":["db/paliSessions"],"label":"en-us|Sessions","icon":"../lib/definitions/db.paliSessions"}
+	]
+} 

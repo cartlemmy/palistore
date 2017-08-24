@@ -1,0 +1,12 @@
+{
+	"name":"en-us|Reports",
+	"version":"0.0",
+	"permissions":["store OR admin"],
+	"menuOrder":10,
+	"additionalMenu":[
+		{"ref":"../../report","args":["db/storeOrders","order-summary"],"label":"en-us|Order Summary","icon":"../../lib/definitions/db.storeOrders"},
+		{"ref":"../../report","args":["db/storeOrderItems","items-overview"],"label":"en-us|Order Items Overview","icon":"../../lib/definitions/db.storeOrderItems"},
+		{"ref":"../../report","args":["db/storeOrderItems","order-items"],"label":"en-us|Order Items","icon":"../../lib/definitions/db.storeOrderItems"},
+		{"ref":"../../report","args":["db/storeOrderItems","camper-notes"],"label":"en-us|Camper Notes","icon":"../../lib/definitions/db.storeOrderItems"}
+	]
+}

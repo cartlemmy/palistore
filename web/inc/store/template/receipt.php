@@ -22,55 +22,53 @@
 			?><tr><td class="td-label"><?=$row["name"];?></td><td><?=$row["value"];?></td></tr><?php
 		}
 	?>
-	<?php if (setAndTrue($this->cfg,"noTax")) { ?>
-	<tr>
-		<td></td><td style="font-style:italic">en-us|Tax is included in the total.</td>
-	</tr>
-	<?php } ?>
 	</tbody></table>
 	<?php if ($order->get("status") != "ordered") {
-		echo "<i>".format(translate("This order has been %%."),valueToString($order->get("status"),"db/storeOrders/status"))."</i>";
+		echo "<i>".format(translate("This order is %%."),valueToString($order->get("status"),"db/storeOrders/status"))."</i>";
 	}	?>
 	</div>
 </div>
 
-<?php 
-$shipments = $order->getShipmentStatus();
-foreach ($shipments as $shipment) {
-?>
 <div class="col-sm-12">
 	<div class="info-section">
-		<p>
-			<?=str_replace("\n", "<br />", $shipment["details"]);?>
-		</p>
-		<table class="table-striped">
+	<h3>en-us|Item Status</h3>
+		<table>
 			<thead><tr>
 				<th>Item</th>
+				<th>Status</th>
 				<th>Price</th>
 			</tr></thead>
 			<tbody>
 				<?php
-					foreach ($shipment["items"] as $item) {
-						echo "<tr>";
-						echo "<td><b></b>".$item["itemName"]."</b>";
-						if (setAndTrue($item,"camper")) echo "<br />For: ".$item["camper"];
-												
-						if (setAndTrue($item,"option")) echo "<br />".$item["optionType"].": ".$item["option"];
-						
-						foreach ($cfg["subOptions"] as $n=>$v) {
-							if (setAndTrue($item,$n)) echo "<br />$v: ".$item[$n];
-						}
-						echo "</td>";
-						
-						echo "<td>".valueToString($item["price"],"currency")."</td>";
-						echo "</tr>\n";
+				$items = $cart->getCartItems();
+
+				foreach ($items as $item) {
+					$itemOb = new storeItem("OI:".$item);
+					$item = $itemOb->get();
+					
+					$cartItem = $itemOb->cartItem;
+					echo "<tr>";
+					echo "<td>".$cartItem["itemName"]."<br />";
+					echo "For: ".$cartItem["camper"]."<br />";
+					echo "School: ".$cartItem["schoolName"];
+					
+					if (setAndTrue($cartItem,"option")) echo "<br />".$cartItem["optionType"].": ".$cartItem["option"];
+					
+					foreach ($cfg["subOptions"] as $n=>$v) {
+						if ($cartItem[$n]) echo "<br />$v: ".$cartItem[$n];
 					}
+					echo "</td>";
+					
+					echo "<td>".valueToString($cartItem["status"],"db/storeOrderItems/status")."</td>";
+					echo "<td>".valueToString($cartItem["price"],"currency")."</td>";
+					echo "</tr>\n";
+				}
 				?>
 			</tbody>
 		</table>
 	</div>
 </div>
-<?php } ?>
+
 <div class="col-sm-12">
 	<div class="info-section">
 		<h3>en-us|Need Help?</h3>

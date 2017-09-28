@@ -6,18 +6,19 @@ require_once(realpath(dirname(__FILE__))."/class.storeItem.php");
 require_once(realpath(dirname(__FILE__))."/class.storeTax.php");
 
 class storeCart extends slClass {
-	private $dir;
+	public $dir;
 	private $cfg;
 	public $subTotal;
 	public $taxTotal;
 	public $shippingAndHandling;
 	public $total;
-	private $cartWhere;
+	public $cartWhere;
 	private $orderId;
 	public $item = null;
 	public $session_id;
 	public $totals;
 	public $items = array();
+	private $addOnUpdate = array("camper","paliSchool","expires","schoolName","shipDate");
 	private $ssValidateFile = false;
 	private $wasValidated = false;
 	private $cartErrors = array();
@@ -25,7 +26,7 @@ class storeCart extends slClass {
 	function __construct($orderId = 0, $session_id = false) {
 		$this->session_id = $session_id === false ? session_id() : $session_id;
 		$this->dir = realpath(dirname(__FILE__));
-		$this->cartWhere = $session_id === true ? array("orderId"=>(int)$orderId) : array("orderId"=>(int)$orderId, "session"=>$this->session_id);
+		$this->cartWhere = $session_id === true ? array("orderId"=>(int)$orderId) : (!$orderId ? array("session"=>$this->session_id) : array("orderId"=>(int)$orderId, "session"=>$this->session_id));
 		$this->orderId = (int)$orderId;
 		$this->cfg = store::getConfig();
 		if (isset($this->cfg["ssValidateFile"])) $this->serverSideValidate($this->cfg["ssValidateFile"]);
@@ -34,6 +35,7 @@ class storeCart extends slClass {
 		$this->taxTotal = new slValue("db/storeOrderItems","price");
 		$this->shippingAndHandling = new slValue("db/storeOrderItems","price");
 		$this->total = new slValue("db/storeOrderItems","price");
+		store::DBGCLASS($this->orderId);
 	}
 	
 	private function serverSideValidate($includeFile) {
@@ -85,16 +87,27 @@ class storeCart extends slClass {
 				require($this->ssValidateFile);
 			}
 			
+			store::DBG('$update ', $update);
+			
 			foreach ($update as $id=>$data) {
+				if (!(int)$id) continue;
 				$data["id"] = (int)$id;
 				$data["expires"] = time() + $this->cfg["cartItemLiveSeconds"];
 				
 				if ($updateFunction) call_user_func_array($updateFunction,array(&$data));
 				unset($data["id"]);
-				//echo $GLOBALS["slCore"]->db->update($this->cfg["table"]["cart"], $data, array("id"=>(int)$id), array("returnQuery"=>1)); 
+				store::DBG($GLOBALS["slCore"]->db->update($this->cfg["table"]["cart"], $data, array("id"=>(int)$id), array("returnQuery"=>1))); 
 				$GLOBALS["slCore"]->db->update($this->cfg["table"]["cart"], $data, array("id"=>(int)$id));
 				
+				$addOnData = array();
+				foreach ($data as $n=>$v) {
+					if (in_array($n,$this->addOnUpdate)) $addOnData[$n] = $v;
+				}
+				store::DBG('$addOnData ', $addOnData);
+				$GLOBALS["slCore"]->db->update($this->cfg["table"]["cart"], $addOnData, array("addonParent"=>(int)$id));
 			}
+
+			store::redirectCheck();
 			
 			if (!$this->hasErrors()) store::redirectCheck();
 		}
@@ -110,9 +123,9 @@ class storeCart extends slClass {
 		$this->cartErrors[$itemId][$field][] = $message;		
 	}
 	
-	function add($item) {
+	function add($item, $addon = 0, $extra = array()) {
 		// TODO: return if order is complete
-		
+		store::DBG('add', $item);
 		if ($item == '') return $this->error("not-specified");
 		
 		if ($itemData = storeItem::getItemData($item)) {
@@ -126,12 +139,14 @@ class storeCart extends slClass {
 			if (!$this->item->get("active")) return $this->error("inactive");
 			if ($this->cfg["inventoryControl"] && $this->item->get("adjustedQuantity") <= 0) return $this->error("out-of-stock");
 			
+			
 			$data = array_merge(
 				$GLOBALS["_YP_STORE_OBJ"]->getDefaults("storeOrderItems"),
 				array(
 				"session"=>session_id(),
 				"item"=>$itemData["id"],
 				"itemName"=>$itemData["name"],
+				"addonParent"=>$addon,
 				"price"=>$itemData["price"],
 				"option"=>$itemData["option"],
 				"optionType"=>$itemData["optionType"],
@@ -143,7 +158,9 @@ class storeCart extends slClass {
 			
 			if ($opts = $this->item->getSubOptions()) {
 				foreach ($opts as $o) {
-					if (isset($_POST[$o["n"]]) && in_array($_POST[$o["n"]],$o["opts"])) {
+					if (isset($extra["subOption"][$o["safeName"]])) {
+						$data[$o["field"]] = $extra["subOption"][$o["safeName"]];
+					} elseif (isset($_POST[$o["n"]]) && in_array($_POST[$o["n"]],$o["opts"])) {
 						$data[$o["field"]] = $_POST[$o["n"]];
 					} else return $this->error("no-option");
 				}
@@ -158,11 +175,12 @@ class storeCart extends slClass {
 				require($this->ssValidateFile);
 			}*/
 			
-			$GLOBALS["slCore"]->db->insert($this->cfg["table"]["cart"],$data);
+			$id = $GLOBALS["slCore"]->db->insert($this->cfg["table"]["cart"],$data);
 			
 			$this->item->refresh();
 
 			$itemData = $this->item->get();
+			$itemData["insertedId"] = $id;
 		} else return $this->error("not-found");
 		$itemData["cnt"] = 1;
 		return $itemData;
@@ -189,9 +207,23 @@ class storeCart extends slClass {
 			$GLOBALS["_YP_STORE_OBJ"]->set("update-cart-defaults", false);
 			$updateCartDefaults = $GLOBALS["_YP_STORE_OBJ"]->getDefaults("storeOrderItems");
 		}
-		
-		if ($res = $GLOBALS["slCore"]->db->select($this->cfg["table"]["cart"],$this->cartWhere)) {
+
+		if ($res = $GLOBALS["slCore"]->db->select($this->cfg["table"]["cart"],$this->cartWhere,array("orderby"=>"id DESC"))) {
+	
 			while ($item = $res->fetch()) {
+				$val = new slValue("db/storeItems","price");
+				$val->value = $item["price"];
+				$val->update();
+
+				if ($r2 = $GLOBALS["slCore"]->db->select($this->cfg["table"]["cart"],array("addonParent"=>$item["id"]))) {
+					while ($s = $r2->fetch()) {
+						$val->add($s["price"]);
+					}
+				}
+				
+				$item["priceWithAddonsFormatted"] = $val->toString();
+				$item["priceWithAddonsUSD"] = $val->getFloat();
+				
 				$this->items[] = $item;
 				
 				$upd = array("expires"=>time() + $this->cfg["cartItemLiveSeconds"]);
@@ -199,7 +231,7 @@ class storeCart extends slClass {
 				if ($updateCartDefaults && !$item["customized"]) {
 					$item = $updateCartDefaults + $item;
 					foreach ($updateCartDefaults as $n=>$v) {
-						if (!setAndTrue($item[$n])) $upd[$n] = $v;
+						if (!setAndTrue($item,$n)) $upd[$n] = $v;
 					}
 				}
 				
@@ -346,6 +378,51 @@ class storeCart extends slClass {
 		$order->set("total",$this->total->value);
 	}
 	
+	function checkoutCheck() {
+		$errors = array();
+		
+		$items = $this->getCartItems();
+		
+		$total = $this->total->getFloat();
+		
+		$addOnItems = array();
+		foreach ($items as $item) {
+			$itemOb = new storeItem("OI:".$item);
+			$item = $itemOb->get();
+						
+			if (setAndTrue($item,"addon")) {
+				if (!isset($addOnItems[$itemOb->cartItem["addonParent"]])) $addOnItems[$itemOb->cartItem["addonParent"]] = array("items"=>array(),"total"=>0);
+				$addOnItems[$itemOb->cartItem["addonParent"]]["items"][] = array(
+					"item"=>$item,
+					"cartItem"=>$itemOb->cartItem
+				);
+				$addOnItems[$itemOb->cartItem["addonParent"]]["total"] += $item["priceUSD"];
+			} else {
+				if (!isset($addOnItems[$itemOb->cartItem["id"]])) $addOnItems[$itemOb->cartItem["id"]] = array("items"=>array(),"total"=>0);
+				$addOnItems[$itemOb->cartItem["id"]]["item"] = $item;
+				$addOnItems[$itemOb->cartItem["id"]]["cartItem"] = $itemOb->cartItem;
+				$addOnItems[$itemOb->cartItem["id"]]["total"] += $item["priceUSD"];
+			}
+		}
+		
+		if (isset($this->cfg["addonThreshold"])) {
+			foreach ($addOnItems as $o) {
+				if ($o["total"] == 0 && $this->cfg["addonThreshold"] == 0) {
+					$errors[] = array(
+						"message"=>"The '".$o["item"]["name"]."' package must contain at least one item",
+						"relatedItem"=>$o["item"]
+					);
+				} elseif ($o["total"] < $this->cfg["addonThreshold"]) {
+					$errors[] = array(
+						"message"=>"The '".$o["item"]["name"]."' package must be at least $".sprintf("%01.2f",valueCurrency::convert($this->cfg["addonThreshold"]." USD", "USD")).". Please add more items to this package.",
+						"relatedItem"=>$o["item"]
+					);
+				}
+			}
+		}
+		return count($errors) ? $errors : false;	
+	}
+	
 	function showCart($templateFile = false) {
 		if ($templateFile === false) $templateFile = $this->dir."/template/item-cart.php";
 		
@@ -354,6 +431,7 @@ class storeCart extends slClass {
 		foreach ($items as $item) {
 			$itemOb = new storeItem("OI:".$item);
 			$item = $itemOb->get();
+			if (setAndTrue($itemOb->cartItem,'addonParent')) continue;
 			$cartItem = $itemOb->cartItem;
 			$cartItem["message"] = array();
 			foreach ($cartItem as $n=>$v) {

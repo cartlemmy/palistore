@@ -1,5 +1,6 @@
 <?php
 
+
 require_once(SL_INCLUDE_PATH.'/class.slValue.php');
 
 class db_storeShipment extends slDBDefinition {
@@ -24,7 +25,10 @@ class db_storeShipment extends slDBDefinition {
 	}
 	
 	public function getDefinition() {
+		require(SL_LIB_PATH.'/palistore.php');
 		return array(
+			"coreTable"=>false,
+			/*"db"=>$cfg["db"],*/
 			"name"=>"en-us|Shipments",
 			"singleName"=>"en-us|Shipment",
 			"table"=>"db/storeShipment",
@@ -35,7 +39,7 @@ class db_storeShipment extends slDBDefinition {
 			"orderdir"=>"desc",
 			"disableDelete"=>true,
 			"oldData"=>1,
-			"conform"=>array("storeInstance"=>1),
+			"conform"=>array("storeInstance"=>$cfg["storeInstance"]),
 			"disableDelete"=>true,
 			"where"=>"(`status`!='in-cart' AND `status`!='')",
 			"queryFilters"=>array(

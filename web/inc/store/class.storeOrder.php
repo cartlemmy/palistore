@@ -36,7 +36,13 @@ class storeOrder extends slClass {
 			if (is_object($store)) $this->store = $store;
 			$this->id = $this->create();
 		}
-		if (!$this->store) $this->store = $GLOBALS["_YP_STORE_OBJ"];
+		if (!$this->store) {
+			if (isset($GLOBALS["_YP_STORE_OBJ"])) {
+				$this->store = $GLOBALS["_YP_STORE_OBJ"];
+			} else {	
+				$this->store = new store();
+			}
+		}
 		$this->updateItemCount();
 	}
 	
@@ -201,7 +207,7 @@ class storeOrder extends slClass {
 		if ($res = $GLOBALS["slCore"]->db->select($this->cfg["table"]["order"],  array("session"=>session_id(),"status"=>""))) {
 			$this->data = $res->fetch();
 	
-			if ($this->store) $this->store->set("cur-order", $this->data["id"]);
+			$this->store->set("cur-order", $this->data["id"]);
 			
 			$this->update();
 			
@@ -251,7 +257,7 @@ class storeOrder extends slClass {
 	}
 
 	function getTotal($ct = "USD") {
-		return valueCurrency::convert($this->get("total"),"USD"); 
+		return valueCurrency::convert($this->get("total"),$ct); 
 	}
 	
 	function init() {
@@ -274,11 +280,16 @@ class storeOrder extends slClass {
 		}
 	}
 	
+	function checkoutCheck() {
+		$this->update();
+		return $this->cart->checkoutCheck();
+	}
+	
 	function updateItemCount() {
 		if ($res = $GLOBALS["slCore"]->db->select($this->cfg["table"]["cart"],array("orderId"=>$this->id),array("select"=>"COUNT(`id`) AS 'cnt'"))) {
 			$row = $res->fetch();
 			if ($this->data["itemCount"] != $row["cnt"]) {
-				$this->set("itemCount",$row["cnt"]);
+				$this->set("itemCount", $row["cnt"]);
 			}
 		}
 	}

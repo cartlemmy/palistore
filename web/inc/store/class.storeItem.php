@@ -60,6 +60,18 @@ class storeItem {
 		$this->refresh();
 	}
 	
+	public function showAddOnItems($cart, $templateFile = false) {
+		if ($templateFile === false) $templateFile = $cart->dir."/template/item-cart-addon.php";
+		if ($res = $GLOBALS["slCore"]->db->select($this->cfg["table"]["cart"],array_merge($cart->cartWhere,array('addonParent'=>$this->cartItem["id"])))) {
+			while ($item = $res->fetch()) {
+				$itemOb = new storeItem("OI:".$item["id"]);
+				$item = $itemOb->get();
+				$cartItem = $itemOb->cartItem;
+				require($templateFile);
+			}
+		}
+	}
+
 	public function apply($returnInfo = false) {
 		ob_start();
 		if ($this->cartItemNewValue) {

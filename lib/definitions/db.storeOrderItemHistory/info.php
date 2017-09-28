@@ -1,7 +1,6 @@
 <?php
 
 return array(
-	"coreTable"=>true,
 	"name"=>"en-us|Order Item History",
 	"singleName"=>"en-us|Item Event",
 	"table"=>"db/storeOrderItemHistory",

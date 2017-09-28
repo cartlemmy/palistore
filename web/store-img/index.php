@@ -1,5 +1,8 @@
 <?php
 
+error_reporting(E_ERROR | E_WARNING | E_PARSE);
+ini_set("display_errors", 0);
+
 $imageFile = array_pop(explode("/",$_SERVER["REQUEST_URI"]));
 $image = explode(".", $imageFile);
 $ext = strtolower(array_pop($image));
@@ -17,7 +20,7 @@ if (preg_match("/(\d+w|\d+h)/",$res)) {
 
 $nameSafe = implode(".",$image);
 
-$cfg = require("../inc/store/config.php");
+$cfg = $storeCfg = require(realpath(__DIR__.'/..')."/inc/store/config.php");
 
 $storeImgDir = getcwd();
 
@@ -32,9 +35,19 @@ $GLOBALS["slConfig"] = require("inc/config.php");
 
 require("inc/initialize.php");
 
-if ($res = $GLOBALS["slCore"]->db->select($cfg["table"]["item"],array("nameSafe"=>$nameSafe))) {
-	$item = $GLOBALS["slCore"]->db->fetch($cfg["table"]["item"]);
-	
+session_write_close();
+
+$item = false;
+
+$itemCacheFile = $storeImgDir."/cache/".$nameSafe.'.json';
+if (is_file($itemCacheFile)) {
+	$item = json_decode(file_get_contents($itemCacheFile), true);
+} elseif ($res = $GLOBALS["slCore"]->db->select('db/storeItems',array("nameSafe"=>$nameSafe))) {
+	$item = $res->fetch();
+	file_put_contents($itemCacheFile, json_encode($item, JSON_PRETTY_PRINT));
+}
+
+if ($item) {
 	$c = explode(";",$item["image"],6);
 	
 	switch ($ext) {
@@ -50,8 +63,9 @@ if ($res = $GLOBALS["slCore"]->db->select($cfg["table"]["item"],array("nameSafe"
 		default:
 			show404();
 	}
+	$cfg = $storeCfg;
 	$file = SL_DATA_PATH."/users/".$cfg["user"]."/file/image/".$c[3].".".array_pop(explode("/",$c[1]));
-	
+
 	if ($width || $height) {
 		$cacheFile = $storeImgDir."/cache/".$imageFile;
 		if (!(is_file($cacheFile) && filemtime($cacheFile) > filemtime($file))) {		

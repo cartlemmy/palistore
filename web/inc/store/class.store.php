@@ -14,11 +14,29 @@ class store extends slClass {
 			$this->setDefaults($this->cfg["defaults"]);
 		}
 	}
+	
+	public static function itemOnPage($item) {
+		$use = array(
+			'id','optionParent','name','namePlural','nameSafe',
+			'categories','option','optionType','subOptions',
+			'description','price','noTax','priceUSD','addon',
+			'sortOrder','featured'
+		);
+		
+		foreach ($item as $n=>$v) {
+			if (!in_array($n, $use)) unset($item[$n]);
+		}
+		
+		$GLOBALS["_STORE_ITEMS_ON_PAGE"][$item["id"]] = $item;
+	}
 
 	public static function getConfig() {
 		if (!defined("_YP_STORE_CONFIG_PATH")) define("_YP_STORE_CONFIG_PATH",realpath(dirname(__FILE__))."/config.php");
 		if (!isset($GLOBALS["_STORE_CFG"])) {
 			$GLOBALS["_STORE_CFG"] = require(_YP_STORE_CONFIG_PATH);
+			if (!isset($GLOBALS["_STORE_CFG"]["db"])) {
+				$GLOBALS["_STORE_CFG"]["db"] = false;
+			}
 			if (isset($GLOBALS["_STORE_CFG"]["shippingTable"])) {
 				$file = $GLOBALS["_STORE_CFG"]["shippingTable"];
 				if (is_file($GLOBALS["_STORE_CFG"]["shippingTable"])) {
@@ -190,5 +208,34 @@ class store extends slClass {
 			return false;
 		}
 		return true;		
+	}
+	
+	private static function BT($fromDepth = 1) {
+		$bt = debug_backtrace();
+		while ($fromDepth > 0) {
+			array_shift($bt);
+			$fromDepth --;
+		}
+		return $bt;
+	}
+	
+	public static function DBGCLASS($vars = false) {
+		$bt = self::BT(2);
+		self::DBG('= class '.$bt[0]['class'].($vars ? ' ('.$vars.')' : '').' =');
+	}
+	
+	public static function DBG() {
+		$args = func_get_args();
+		$out = array();
+		foreach ($args as $n=>$arg) {
+			if (is_string($arg)) {
+				$out[] = $arg.($n == 0 ? ": " : "");
+			} else {
+				$out[] = json_encode($arg, JSON_PRETTY_PRINT);
+			}
+		}
+		$dir = SL_DATA_PATH.'/store-dbg';
+		exec('mkdir -p '.escapeshellarg($dir));
+		file_put_contents($dir.'/'.session_id(), implode("\n", $out)."\n", FILE_APPEND);
 	}
 }

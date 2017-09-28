@@ -3,7 +3,12 @@
 
 require_once(SL_INCLUDE_PATH."/class.slWebForm.php");
 $form = new slWebForm(array(
-	"name"=>array("label"=>"en-us|Your Name","validate"=>"not-empty","getter"=>array($order,"get"),"setter"=>array($order,"set")),
+	"name"=>array(
+		"label"=>"en-us|Your Name",
+		"validate"=>"not-empty",
+		"getter"=>array($order,"get"),
+		"setter"=>array($order,"set")
+	)
 ));
 
 ?>

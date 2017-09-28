@@ -36,7 +36,6 @@ function db_storeItems_update($newData,$oldData,$info) {
 }
 
 return array(
-	"coreTable"=>true,
 	"name"=>"en-us|Items",
 	"singleName"=>"en-us|Item",
 	"table"=>"db/storeItems",
@@ -152,6 +151,15 @@ return array(
 		"sortOrder"=>array(
 			"label"=>"en-us|Sort Order",
 			"type"=>"number"
+		),
+		"addon"=>array(
+			"label"=>"en-us|Add-on Item",
+			"type"=>"select",
+			"indexIsValue"=>true,
+			"options"=>array(
+				"en-us|--",
+				"en-us|Add-on"
+			)
 		),
 		"featured"=>array(
 			"label"=>"en-us|Featured",

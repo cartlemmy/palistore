@@ -2,6 +2,7 @@
 
 return array(
 	"storeName"=>"Pali Adventures",
+	"db"=>null,
 	"fromEmail"=>array(
 		"email"=>"store@palimountain.com",
 		"name"=>"Pali Adventures Store"
@@ -49,5 +50,6 @@ return array(
 		"optSize"=>"en-us|Size",
 		"optStyle"=>"en-us|Style"
 	),
-	"noTax"=>false
+	"noTax"=>false,
+	"addonThreshold"=>0	
 );
